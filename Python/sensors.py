@@ -26,3 +26,4 @@ if (args.sensor == 'humidity'):
 if (args.sensor == 'door'):
 	mqttc.publish("myHome/doorSensor/room1", str(args.value))
 if (args.sensor == 'window'):
+	mqttc.publish("myHome/windowSensor/room1", str(args.value))
