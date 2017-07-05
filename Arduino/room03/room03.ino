@@ -123,6 +123,7 @@ void reconnect() {
       client.subscribe("myHome/lamp02/room03");
       client.subscribe("myHome/lamp03/room03");
       client.subscribe("myHome/fan01/room03");
+      client.subscribe("myHome/lampRgb01/room03");
       client.subscribe("myHome/board/room03/debug");      
     } else {
       Serial.print("failed, rc=");
@@ -197,6 +198,9 @@ void lampTopics(char* _topic, char* _payload){
 void i2cTopics(char* _topic, char* _payload){
   // Fan 01
   if (0 == strcmp(_topic, "myHome/fan01/room03")){
+    //sendMqttPayload(_payload);
+  }
+  if (0 == strcmp(_topic, "myHome/lampRgb01/room03")){
     sendMqttPayload(_payload);
   }
 }
@@ -212,8 +216,10 @@ void sendMqttTopic(char* _topic, char* _payload){
 
 // Send Topic and payload to arduino device
 void sendMqttPayload(char* _payload){
-  Serial.println();
-  Serial.print(_payload);
+  if(DEBUG == true){
+    Serial.println();
+    Serial.print(_payload);  
+  }
   Wire.beginTransmission(240);  // transmit to device #240
   Wire.write(_payload);
   Wire.endTransmission();       // stop transmitting
