@@ -61,7 +61,7 @@ Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 1234
 /************** Prototype functions**************/
 void setupWifi();
 void reconnect();
-void callback(char* topic, byte* payload, unsigned int length);
+void callback(char* topic, byte* payload, unsigned int _length);
 void displaySensorDetails(void);
 void configureSensor(void);
 void readSensor(void);
@@ -114,7 +114,7 @@ void loop()
 }
 
 // Event to handle subscriptions and publications
-void callback(char* topic, byte* payload, unsigned int length) {
+void callback(char* topic, byte* payload, unsigned int _length) {
   if (DEBUG == true){
     Serial.print("Message arrived [");
     Serial.print(topic);
@@ -122,16 +122,16 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
   char* strPayload;
   /* Initial memory allocation */
-  strPayload = (char *) malloc(length + 1);
+  strPayload = (char *) malloc(_length);
 
-  for (int i = 0; i < length; i++) {    
+  for (int i = 0; i < _length; i++) {    
     strPayload[i] = (char)payload[i];
     if (DEBUG == true){
       Serial.print(strPayload[i]);
     }
   }
   // Add a NULL caracter to complete the string
-  strPayload[length + 1] = '\0';
+  strPayload[_length] = '\0';
   // Enable lamp topics
   lampTopics(topic, strPayload);
   if (DEBUG == true){
