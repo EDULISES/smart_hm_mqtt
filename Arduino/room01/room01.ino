@@ -27,12 +27,18 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_TSL2561_U.h>
+// Temp & Hum Sensor
+#include <Arduino.h>
+#include <Adafruit_SHT31.h>
+
 #include <string.h>
 #include <stdlib.h>
 
 // Update these with values suitable for your network.
-const char* ssid     = "SicomoroBonito";
-const char* password = "ChV3u6G33t";
+//const char* ssid     = "SicomoroBonito";
+const char* ssid     = "Sicomoro";
+//const char* password = "ChV3u6G33t";
+const char* password = "kEQM447pQm";
 IPAddress mqttServer(192, 168, 1, 136);
 // Configure time to get data from sensor
 unsigned long tAnt = 0, t1Ant = 0;
@@ -49,14 +55,18 @@ const byte ledPin03 = 14;
 // Variables to allocate temperature and humidity from sensor
 int temp = 0;
 int hum = 0;
+int addressTempHumSensor = 0x44;
+
 // Debug Flag
-bool DEBUG = false;
+bool DEBUG = true;
 
 // WifiClient
 WiFiClient espClient;
 PubSubClient client(espClient);
-// Object for sensor
+// Object for light sensor
 Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
+// Object for temp & hum sensor
+Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 /************** Prototype functions**************/
 void setupWifi();
@@ -64,7 +74,8 @@ void reconnect();
 void callback(char* topic, byte* payload, unsigned int _length);
 void displaySensorDetails(void);
 void configureSensor(void);
-void readSensor(void);
+void readLightSensor(void);
+void readTempHumSensor(void);
 void setLuxThreshold(char* _topic, char* _payload);
 void configDigitalPins();
 void readBtns();
@@ -86,6 +97,11 @@ void setup() {
     Serial.print("Ooops, no TSL2561 detected ... Check your wiring or I2C ADDR!");
     while (1);
   }
+  // Verify of the Temp & Hum sensor is connected
+  if (! sht31.begin(addressTempHumSensor)) {   // Set to 0x45 for alternate i2c addr
+    Serial.println("Couldn't find SHT31");
+    while (1) delay(1);
+  }
   /* Display some basic information on this sensor */
   displaySensorDetails();
   /* Setup the sensor gain and integration time */
@@ -104,7 +120,8 @@ void loop()
   client.loop();
   // Light sensor publishing
   if ((tAct - tAnt) >= tSecs) {
-    readSensor();
+    readLightSensor();
+    readTempHumSensor();
     tAnt = tAct;
   }
   if ((t1Act - t1Ant >= t1Secs)) {
@@ -226,7 +243,7 @@ void configureSensor(void)
 }
 
 // Read light sensor
-void readSensor() {
+void readLightSensor() {
   /* Get a new sensor event */
   sensors_event_t event;
   tsl.getEvent(&event);
@@ -253,18 +270,28 @@ void readSensor() {
        and no reliable data could be generated! */
     Serial.println("Sensor overload");
   }
+}
 
-  if (temp >= 100) {
-    temp = hum = 0;
+// Read light sensor
+void readTempHumSensor() {
+  char strTemp [10], strHum [10];
+  float temperature = sht31.readTemperature();
+  float humidity = sht31.readHumidity();
+
+  if (! isnan(temperature)) {  // check if 'is not a number'
+    Serial.println(temperature);
+    dtostrf(temperature, 6, 2, strTemp);
+    client.publish("myHome/temperatureSensor/room01", strTemp);
+  } else { 
+    client.publish("myHome/temperatureSensor/room01", "NULL");
   }
-
-  char strTemp [4], strHum [4];
-  itoa(temp, strTemp, 10);
-  itoa(hum, strHum, 10);
-  client.publish("myHome/temperatureSensor/room01", strTemp);
-  client.publish("myHome/humiditySensor/room01", strHum);
-  temp++;
-  hum++;
+  
+  if (! isnan(humidity)) {  // check if 'is not a number'
+    dtostrf(humidity, 6, 2, strHum);
+    client.publish("myHome/humiditySensor/room01", strHum);
+  } else { 
+    client.publish("myHome/humiditySensor/room01", "NULL");
+  }
 }
 
 // Set the threshold value from light sensor
